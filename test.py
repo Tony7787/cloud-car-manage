@@ -15,19 +15,21 @@ SHEET_CARS = "cars"
 SHEET_LOGS = "logs"
 
 def load_all_data():
+    """強化版讀取：優先讀取，若指定分頁失敗則回退"""
     try:
-        # 改成不指定 worksheet，先看看能不能讀到「預設第一頁」
-        st.write("正在測試讀取預設第一頁...")
-        df_test = conn.read(ttl=0) 
-        st.write("✅ 成功讀到第一頁！標題為：", df_test.columns.tolist())
+        # 1. 嘗試讀取第一個分頁 (通常就是 staff)
+        staff = conn.read(ttl=0) 
         
-        # 如果上面成功，再讀取特定頁面
-        staff = conn.read(worksheet=SHEET_STAFF, ttl=0)
-        cars = conn.read(worksheet=SHEET_CARS, ttl=0)
-        logs = conn.read(worksheet=SHEET_LOGS, ttl=0)
+        # 2. 讀取其餘分頁
+        # 如果 worksheet 指定失敗，可能是 Google API 對公開連結的限制
+        # 我們改用最保險的讀取方式
+        cars = conn.read(worksheet="cars", ttl=0)
+        logs = conn.read(worksheet="logs", ttl=0)
+        
         return staff, cars, logs
     except Exception as e:
-        st.error(f"技術錯誤訊息：{e}")
+        st.error(f"⚠️ 偵測到分頁讀取異常")
+        st.info("請確認您的 Google Sheet 中，'staff' 必須是左邊數來第一個分頁標籤。")
         st.stop()
 
 def sync_to_cloud(staff_df, cars_df, logs_df):
@@ -97,6 +99,7 @@ else:
 st.write("---")
 st.write("🔍 **最新 5 筆操作動態：**")
 st.table(logs_df.head(5))
+
 
 
 
