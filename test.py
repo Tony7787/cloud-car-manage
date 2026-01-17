@@ -57,16 +57,16 @@ st.title("🚗 車輛作業紀錄系統")
 
 # --- 7. 各功能畫面 ---
 if st.session_state.menu == 'home':
-    st.info(f"系統狀態：已啟動 | 台北時間：{datetime.now(TW_TZ).strftime('%H:%M:%S')}")
+    st.info(f"系統狀態：效能模式已啟動 | 台北時間：{datetime.now(TW_TZ).strftime('%H:%M:%S')}")
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("➕ 新增車輛", use_container_width=True):
+        if st.button("➕ 新增紀錄", use_container_width=True):
             st.session_state.menu = 'add'; st.rerun()
-        if st.button("🗑️ 刪除車輛", use_container_width=True):
+        if st.button("🗑️ 刪除紀錄", use_container_width=True):
             st.session_state.menu = 'delete'; st.rerun()
     with col2:
-        if st.button("🔍 查詢車輛", use_container_width=True):
+        if st.button("🔍 查詢紀錄", use_container_width=True):
             st.session_state.menu = 'query'; st.rerun()
         if st.button("📝 變更紀錄", use_container_width=True):
             st.session_state.menu = 'update'; st.rerun()
@@ -77,7 +77,7 @@ if st.session_state.menu == 'home':
     st.table(logs_df.head(5))
 
 elif st.session_state.menu == 'add':
-    st.subheader("➕ 新增車輛")
+    st.subheader("➕ 新增車輛紀錄")
     with st.form("add_form", clear_on_submit=True):
         plate = st.text_input("輸入車牌號碼")
         weight = st.number_input("輸入空車重量", min_value=0.0, format="%.2f")
@@ -97,10 +97,10 @@ elif st.session_state.menu == 'add':
         with st.spinner("同步中..."):
             save_and_refresh(staff_df, cars_df, logs_df)
         st.success("✅ 紀錄已更新！")
-        #st.balloons()
+        st.balloons()
 
 elif st.session_state.menu == 'query':
-    st.subheader("🔍 查詢車輛")
+    st.subheader("🔍 查詢所有紀錄")
     # 使用快取中的資料進行搜尋
     search_q = st.text_input("💡 輸入車牌搜尋過濾", "")
     
@@ -112,7 +112,7 @@ elif st.session_state.menu == 'query':
         st.dataframe(logs_df.head(100), use_container_width=True) # 限制顯示前100筆提高效能
 
 elif st.session_state.menu == 'delete':
-    st.subheader("🗑️ 刪除車輛")
+    st.subheader("🗑️ 刪除紀錄")
     target_plate = st.selectbox("選擇欲刪除的車牌", [""] + list(cars_df['車牌號碼'].unique()))
     staff = st.selectbox("操作人員", STAFF_LIST)
     
@@ -129,11 +129,11 @@ elif st.session_state.menu == 'delete':
         st.warning(f"⚠️ 車牌 {target_plate} 已移除")
 
 elif st.session_state.menu == 'update':
-    st.subheader("📝 變更紀錄")
+    st.subheader("📝 變更紀錄內容")
     if not cars_df.empty:
         target_plate = st.selectbox("選擇欲變更的車牌", cars_df['車牌號碼'].unique())
         new_weight = st.number_input("修正空車重量", min_value=0.0, format="%.2f")
-        new_staff = st.selectbox("人員編號", STAFF_LIST)
+        new_staff = st.selectbox("修正人員編號", STAFF_LIST)
         
         if st.button("儲存變更"):
             now_str = datetime.now(TW_TZ).strftime("%Y-%m-%d %H:%M:%S")
@@ -147,6 +147,7 @@ elif st.session_state.menu == 'update':
             with st.spinner("同步中..."):
                 save_and_refresh(staff_df, cars_df, logs_df)
             st.success("✅ 變更成功")
+
 
 
 
