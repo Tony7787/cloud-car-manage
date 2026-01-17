@@ -3,115 +3,145 @@ from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime, timedelta, timezone
 
-# --- 頁面設定 ---
-st.set_page_config(page_title="雲端資產管理系統", layout="wide")
+# --- 1. 網頁頁面配置 ---
+st.set_page_config(page_title="車輛管理系統", layout="centered")
 
-# --- 建立連線 ---
-# 注意：這會自動讀取您在 Secrets 設定的 service_account 資訊
+# --- 2. 建立雲端連線 ---
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# 定義分頁變數 (需與 Google Sheets 下方標籤名稱一致)
+# --- 3. 基礎設定與時區處理 ---
 SHEET_STAFF = "staff"
 SHEET_CARS = "cars"
 SHEET_LOGS = "logs"
+TW_TZ = timezone(timedelta(hours=8))  # 台灣時區
 
 def load_all_data():
-    """使用 GID 強制讀取特定分頁，確保公開連結下不會報 400 錯誤"""
+    """使用 GID 確保在公開連結下也能精準讀取各個分頁"""
     try:
         base_url = "https://docs.google.com/spreadsheets/d/1w2Fl2nc7ptfrSGTa4yARI_Opl7CWvcVFjfNu1Q2Wzus"
-        
-        # 讀取三個分頁 (請確認您的 GID 是否與網址一致)
-        staff_url = f"{base_url}/export?format=csv&gid=1036077614" 
-        staff = pd.read_csv(staff_url)
-        
-        cars_url = f"{base_url}/export?format=csv&gid=735260252" 
-        cars = pd.read_csv(cars_url)
-        
-        logs_url = f"{base_url}/export?format=csv&gid=1334291441"
-        logs = pd.read_csv(logs_url)
-        
+        # 讀取三個分頁 (依據您之前提供的 GID)
+        staff = pd.read_csv(f"{base_url}/export?format=csv&gid=1036077614")
+        cars = pd.read_csv(f"{base_url}/export?format=csv&gid=735260252")
+        logs = pd.read_csv(f"{base_url}/export?format=csv&gid=1334291441")
         return staff, cars, logs
     except Exception as e:
-        st.error(f"⚠️ 資料讀取失敗")
-        st.write(f"錯誤訊息：{e}")
+        st.error(f"❌ 資料載入失敗：{e}")
         st.stop()
 
-def sync_to_cloud(staff_df, cars_df, logs_df):
-    """利用服務帳號權限將資料同步回雲端"""
+def save_to_cloud(staff_df, cars_df, logs_df):
+    """將資料同步寫入雲端 (需 Secrets 內有 Service Account 資訊)"""
     try:
         conn.update(worksheet=SHEET_STAFF, data=staff_df)
         conn.update(worksheet=SHEET_CARS, data=cars_df)
         conn.update(worksheet=SHEET_LOGS, data=logs_df)
     except Exception as e:
-        st.error("❌ 同步至雲端失敗，請確認是否已將試算表「共用」給服務帳號 Email")
-        st.write(e)
+        st.error(f"❌ 雲端同步失敗，請檢查權限設定：{e}")
 
-# --- 數據準備 ---
-if 'page' not in st.session_state:
-    st.session_state.page = 'home'
-
+# --- 4. 數據初始化 ---
 staff_df, cars_df, logs_df = load_all_data()
-staff_list = staff_df['人員編號'].astype(str).tolist() if not staff_df.empty else ["無人員資料"]
+STAFF_LIST = staff_df['人員編號'].astype(str).tolist() if not staff_df.empty else ["無人員資料"]
 
-# --- 介面呈現 ---
-if st.session_state.page == 'home':
-    st.title("🌐 雲端資產運營中心")
-    st.info("目前時區：台北 (GMT+8)")
+# --- 5. 導覽邏輯 (Menu Control) ---
+if 'menu' not in st.session_state:
+    st.session_state.menu = 'home'
+
+if st.session_state.menu != 'home':
+    if st.sidebar.button("🔙 回首頁"):
+        st.session_state.menu = 'home'
+        st.rerun()
+
+# --- 6. 各功能畫面 ---
+st.title("🚗 車輛作業紀錄系統")
+
+if st.session_state.menu == 'home':
+    st.info(f"當前連線狀態：正常 | 台北時間：{datetime.now(TW_TZ).strftime('%H:%M')}")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("➕ 新增紀錄", use_container_width=True):
+            st.session_state.menu = 'add'; st.rerun()
+        if st.button("🗑️ 刪除紀錄", use_container_width=True):
+            st.session_state.menu = 'delete'; st.rerun()
+    with col2:
+        if st.button("🔍 查詢紀錄", use_container_width=True):
+            st.session_state.menu = 'query'; st.rerun()
+        if st.button("📝 變更紀錄", use_container_width=True):
+            st.session_state.menu = 'update'; st.rerun()
     
-    # 財務統計看板
-    m1, m2 = st.columns(2)
-    m1.metric("車輛總數", len(cars_df))
-    m2.metric("操作紀錄", len(logs_df))
-
     st.write("---")
-    cols = st.columns(4)
-    if cols[0].button("新增車輛"): st.session_state.page = '新增'; st.rerun()
-    if cols[1].button("刪除車輛"): st.session_state.page = '刪除'; st.rerun()
-    if cols[2].button("更改資訊"): st.session_state.page = '更改'; st.rerun()
-    if cols[3].button("紀錄查詢"): st.session_state.page = '查詢'; st.rerun()
+    st.subheader("🕒 最近 5 筆操作動態")
+    st.table(logs_df.head(5))
 
-    # 置頂顯示最新動態
-    st.write("### 🕒 最近操作紀錄 (置頂)")
-    st.dataframe(logs_df.head(10), use_container_width=True)
-
-else:
-    if st.sidebar.button("🔙 返回首頁"):
-        st.session_state.page = 'home'; st.rerun()
-
-    st.subheader(f"進行作業：{st.session_state.page}")
+elif st.session_state.menu == 'add':
+    st.subheader("➕ 新增車輛紀錄")
+    plate = st.text_input("輸入車牌號碼")
+    weight = st.number_input("輸入空車重量", min_value=0.0, format="%.2f")
+    staff = st.selectbox("選擇人員編號", STAFF_LIST)
     
-    # 輸入介面
-    with st.form("data_form"):
-        p_in = st.text_input("輸入車牌號碼")
-        w_in = st.number_input("空車重量", min_value=0.0, format="%.2f") if st.session_state.page in ['新增', '更改'] else 0.0
-        s_in = st.selectbox("操作人員", staff_list)
-        submit = st.form_submit_button(f"確認執行{st.session_state.page}")
-
-    if submit:
-        # --- 修正時間問題 (GMT+8) ---
-        tw_tz = timezone(timedelta(hours=8))
-        now = datetime.now(tw_tz).strftime("%Y-%m-%d %H:%M:%S")
-        
-        # 1. 更新 Logs (置頂邏輯)
-        new_log = pd.DataFrame([[st.session_state.page, p_in, w_in, s_in, now]], columns=logs_df.columns)
+    if st.button("確認提交"):
+        now_str = datetime.now(TW_TZ).strftime("%Y-%m-%d %H:%M:%S")
+        # 更新 Cars 表 (置頂新資料)
+        cars_df = cars_df[cars_df['車牌號碼'] != plate]
+        new_car = pd.DataFrame([[plate, weight, now_str]], columns=cars_df.columns)
+        cars_df = pd.concat([new_car, cars_df], ignore_index=True)
+        # 更新 Logs 表 (置頂)
+        new_log = pd.DataFrame([["新增", plate, weight, staff, now_str]], columns=logs_df.columns)
         logs_df = pd.concat([new_log, logs_df], ignore_index=True)
-
-        # 2. 更新 Cars (置頂邏輯)
-        if st.session_state.page in ["新增", "更改"]:
-            cars_df = cars_df[cars_df['車牌號碼'] != p_in]
-            new_car = pd.DataFrame([[p_in, w_in, now]], columns=cars_df.columns)
-            cars_df = pd.concat([new_car, cars_df], ignore_index=True)
-        elif st.session_state.page == "刪除":
-            cars_df = cars_df[cars_df['車牌號碼'] != p_in]
-
-        # 3. 同步回雲端
-        with st.spinner('同步雲端中...'):
-            sync_to_cloud(staff_df, cars_df, logs_df)
         
-        st.success(f"✅ 操作成功！時間：{now}")
+        with st.spinner("同步至雲端..."):
+            save_to_cloud(staff_df, cars_df, logs_df)
+        st.success("✅ 紀錄已成功更新至雲端！")
         st.balloons()
 
+elif st.session_state.menu == 'query':
+    st.subheader("🔍 查詢所有紀錄")
+    tab1, tab2 = st.tabs(["目前車輛清單", "歷史操作紀錄"])
+    with tab1:
+        st.dataframe(cars_df, use_container_width=True)
+    with tab2:
+        st.dataframe(logs_df, use_container_width=True)
 
+elif st.session_state.menu == 'delete':
+    st.subheader("🗑️ 刪除紀錄")
+    target_plate = st.text_input("輸入欲刪除的車牌號碼")
+    staff = st.selectbox("操作人員", STAFF_LIST)
+    
+    if st.button("執行刪除", type="primary"):
+        if target_plate in cars_df['車牌號碼'].values:
+            now_str = datetime.now(TW_TZ).strftime("%Y-%m-%d %H:%M:%S")
+            # 取得該車最後紀錄的重量 (紀錄進 logs 用)
+            old_weight = cars_df[cars_df['車牌號碼'] == target_plate]['空車重量'].values[0]
+            # 刪除
+            cars_df = cars_df[cars_df['車牌號碼'] != target_plate]
+            # 紀錄動作
+            new_log = pd.DataFrame([["刪除", target_plate, old_weight, staff, now_str]], columns=logs_df.columns)
+            logs_df = pd.concat([new_log, logs_df], ignore_index=True)
+            
+            save_to_cloud(staff_df, cars_df, logs_df)
+            st.warning(f"⚠️ 車牌 {target_plate} 的相關紀錄已移除")
+        else:
+            st.error("❌ 找不到該車牌紀錄")
+
+elif st.session_state.menu == 'update':
+    st.subheader("📝 變更紀錄內容")
+    if not cars_df.empty:
+        target_plate = st.selectbox("選擇欲變更的車牌", cars_df['車牌號碼'].unique())
+        new_weight = st.number_input("修正空車重量", min_value=0.0, format="%.2f")
+        new_staff = st.selectbox("修正人員編號", STAFF_LIST)
+        
+        if st.button("儲存變更"):
+            now_str = datetime.now(TW_TZ).strftime("%Y-%m-%d %H:%M:%S")
+            # 更新 Cars 表
+            idx = cars_df[cars_df['車牌號碼'] == target_plate].index
+            cars_df.loc[idx, '空車重量'] = new_weight
+            cars_df.loc[idx, '更新時間'] = now_str
+            # 紀錄動作
+            new_log = pd.DataFrame([["變更", target_plate, new_weight, new_staff, now_str]], columns=logs_df.columns)
+            logs_df = pd.concat([new_log, logs_df], ignore_index=True)
+            
+            save_to_cloud(staff_df, cars_df, logs_df)
+            st.success("✅ 變更成功")
+    else:
+        st.info("目前無車輛紀錄可供變更")
 
 
 
