@@ -57,7 +57,7 @@ st.title("🚗 車輛作業紀錄系統")
 
 # --- 7. 各功能畫面 ---
 if st.session_state.menu == 'home':
-    st.info(f"系統狀態：效能模式已啟動 | 台北時間：{datetime.now(TW_TZ).strftime('%H:%M:%S')}")
+    st.info(f"系統狀態：已啟動 | 時間：{datetime.now(TW_TZ).strftime('%H:%M:%S')}")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -152,6 +152,7 @@ elif st.session_state.menu == 'update':
             # --- 修改完後即時顯示該筆資料 ---
             st.write("📋 **變更後的最新資訊：**")
             st.info(f"車牌號碼：**{target_plate}** | 空車重量：**{new_weight}** | 時間：**{now_str}**")
+
 
 
 
