@@ -15,22 +15,27 @@ SHEET_CARS = "cars"
 SHEET_LOGS = "logs"
 
 def load_all_data():
-    """終極穩定版：分開讀取，確保 cars 與 logs 也能順利載入"""
     try:
-        # 1. 讀取 staff (因為它在最左邊，不指定名稱最穩)
-        staff = conn.read(ttl=0) 
+        # 1. 讀取 staff (第一頁通常最穩，直接讀)
+        #staff = conn.read(ttl=0) 
         
-        # 2. 讀取 cars (加上 query 參數強制 Google 重新識別分頁)
-        cars = conn.read(worksheet="cars", ttl=0)
+        # 2. 讀取 cars (請把下方 gid 數字換成您在網址列看到的)
+        # 範例網址格式：spreadsheet_url + "/export?format=csv&gid=您的數字"
+        base_url = "https://docs.google.com/spreadsheets/d/1w2Fl2nc7ptfrSGTa4yARI_Opl7CWvcVFjfNu1Q2Wzus"
+
+        staff_url = f"{base_url}/export?format=csv&gid=1036077614" 
+        staff = pd.read_csv(staff_url)
         
-        # 3. 讀取 logs
-        logs = conn.read(worksheet="logs", ttl=0)
+        cars_url = f"{base_url}/export?format=csv&gid=735260252" 
+        cars = pd.read_csv(cars_url)
+        
+        logs_url = f"{base_url}/export?format=csv&gid=1334291441"
+        logs = pd.read_csv(logs_url)
         
         return staff, cars, logs
     except Exception as e:
-        # 如果還是失敗，我們會看到具體是哪個分頁卡住
-        st.error(f"分頁對接失敗")
-        st.info(f"技術細節：{e}")
+        st.error(f"⚠️ 強制讀取失敗")
+        st.write(f"請檢查 gid 數字是否正確：{e}")
         st.stop()
 
 def sync_to_cloud(staff_df, cars_df, logs_df):
@@ -100,6 +105,7 @@ else:
 st.write("---")
 st.write("🔍 **最新 5 筆操作動態：**")
 st.table(logs_df.head(5))
+
 
 
 
