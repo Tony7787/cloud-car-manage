@@ -15,21 +15,19 @@ SHEET_CARS = "cars"
 SHEET_LOGS = "logs"
 
 def load_all_data():
-    """進化版讀取：會告訴我們具體哪一個分頁出問題"""
     try:
-        st.write("正在嘗試讀取 staff...")
+        # 改成不指定 worksheet，先看看能不能讀到「預設第一頁」
+        st.write("正在測試讀取預設第一頁...")
+        df_test = conn.read(ttl=0) 
+        st.write("✅ 成功讀到第一頁！標題為：", df_test.columns.tolist())
+        
+        # 如果上面成功，再讀取特定頁面
         staff = conn.read(worksheet=SHEET_STAFF, ttl=0)
-        
-        st.write("正在嘗試讀取 cars...")
         cars = conn.read(worksheet=SHEET_CARS, ttl=0)
-        
-        st.write("正在嘗試讀取 logs...")
         logs = conn.read(worksheet=SHEET_LOGS, ttl=0)
-        
         return staff, cars, logs
     except Exception as e:
-        st.error(f"❌ 讀取失敗！")
-        st.info(f"技術錯誤訊息：{e}")
+        st.error(f"技術錯誤訊息：{e}")
         st.stop()
 
 def sync_to_cloud(staff_df, cars_df, logs_df):
@@ -99,5 +97,6 @@ else:
 st.write("---")
 st.write("🔍 **最新 5 筆操作動態：**")
 st.table(logs_df.head(5))
+
 
 
