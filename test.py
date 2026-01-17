@@ -97,7 +97,9 @@ elif st.session_state.menu == 'add':
         with st.spinner("同步中..."):
             save_and_refresh(staff_df, cars_df, logs_df)
         st.success("✅ 紀錄已更新！")
-        st.balloons()
+        # --- 新增完後即時顯示該筆資料 ---
+        st.write("📋 **剛剛新增的資料內容：**")
+        st.info(f"車牌號碼：**{plate}** | 空車重量：**{weight}** | 時間：**{now_str}**")
 
 elif st.session_state.menu == 'query':
     st.subheader("🔍 查詢所有紀錄")
@@ -147,6 +149,10 @@ elif st.session_state.menu == 'update':
             with st.spinner("同步中..."):
                 save_and_refresh(staff_df, cars_df, logs_df)
             st.success("✅ 變更成功")
+            # --- 修改完後即時顯示該筆資料 ---
+            st.write("📋 **變更後的最新資訊：**")
+            st.info(f"車牌號碼：**{target_plate}** | 空車重量：**{new_weight}** | 時間：**{now_str}**")
+
 
 
 
