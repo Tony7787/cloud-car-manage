@@ -15,14 +15,21 @@ SHEET_CARS = "cars"
 SHEET_LOGS = "logs"
 
 def load_all_data():
-    """讀取三個分頁，ttl=0 確保兩台電腦看到的是同步資料"""
+    """進化版讀取：會告訴我們具體哪一個分頁出問題"""
     try:
+        st.write("正在嘗試讀取 staff...")
         staff = conn.read(worksheet=SHEET_STAFF, ttl=0)
+        
+        st.write("正在嘗試讀取 cars...")
         cars = conn.read(worksheet=SHEET_CARS, ttl=0)
+        
+        st.write("正在嘗試讀取 logs...")
         logs = conn.read(worksheet=SHEET_LOGS, ttl=0)
+        
         return staff, cars, logs
     except Exception as e:
-        st.error(f"讀取分頁失敗，請確認標籤名稱是否為 {SHEET_STAFF}, {SHEET_CARS}, {SHEET_LOGS}")
+        st.error(f"❌ 讀取失敗！")
+        st.info(f"技術錯誤訊息：{e}")
         st.stop()
 
 def sync_to_cloud(staff_df, cars_df, logs_df):
@@ -92,4 +99,5 @@ else:
 st.write("---")
 st.write("🔍 **最新 5 筆操作動態：**")
 st.table(logs_df.head(5))
+
 
