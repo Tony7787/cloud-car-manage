@@ -80,7 +80,7 @@ elif st.session_state.menu == 'add':
     st.subheader("➕ 新增車輛紀錄")
     with st.form("add_form", clear_on_submit=True):
         plate = st.text_input("輸入車牌號碼")
-        weight = st.number_input("輸入空車重量", min_value=0.0, format="%.2f")
+        weight = st.number_input("輸入空車重量", min_value=0.0, format="%.0f")
         staff = st.selectbox("選擇人員編號", STAFF_LIST)
         submit = st.form_submit_button("確認提交")
     
@@ -134,7 +134,7 @@ elif st.session_state.menu == 'update':
     st.subheader("📝 變更紀錄內容")
     if not cars_df.empty:
         target_plate = st.selectbox("選擇欲變更的車牌", cars_df['車牌號碼'].unique())
-        new_weight = st.number_input("修正空車重量", min_value=0.0, format="%.2f")
+        new_weight = st.number_input("修正空車重量", min_value=0.0, format="%.0f")
         new_staff = st.selectbox("修正人員編號", STAFF_LIST)
         
         if st.button("儲存變更"):
@@ -152,6 +152,7 @@ elif st.session_state.menu == 'update':
             # --- 修改完後即時顯示該筆資料 ---
             st.write("📋 **變更後的最新資訊：**")
             st.info(f"車牌號碼：**{target_plate}** | 空車重量：**{new_weight}** | 時間：**{now_str}**")
+
 
 
 
