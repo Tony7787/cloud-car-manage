@@ -141,7 +141,7 @@ elif st.session_state.menu == 'update':
         if st.button("儲存變更"):
             now_str = datetime.now(TW_TZ).strftime("%Y-%m-%d %H:%M:%S")
             idx = cars_df[cars_df['車牌號碼'] == target_plate].index
-            cars_df.loc[idx, '空車重量'] = new_weight
+            cars_df.loc[idx, '空車重量'] = str(new_weight)
             cars_df.loc[idx, '更新時間'] = now_str
             
             new_log = pd.DataFrame([["變更", target_plate, new_weight, new_staff, now_str]], columns=logs_df.columns)
