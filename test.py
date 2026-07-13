@@ -108,11 +108,22 @@ elif st.session_state.menu == 'query':
     search_q = st.text_input("💡 輸入車牌搜尋過濾", "")
     
     tab1, tab2 = st.tabs(["目前車輛清單", "歷史操作紀錄"])
+    
     with tab1:
+        # 篩選目前車輛清單
         display_cars = cars_df[cars_df['車牌號碼'].str.contains(search_q, na=False)] if search_q else cars_df
         st.dataframe(display_cars, use_container_width=True)
+        
     with tab2:
-        st.dataframe(logs_df.head(100), use_container_width=True) # 限制顯示前100筆提高效能
+        # 根據輸入的關鍵字篩選歷史紀錄（確保 logs_df 的欄位名稱為 '車牌號碼'）
+        if search_q:
+            # 將欄位轉成字串防呆，並使用 str.contains 模糊比對
+            display_logs = logs_df[logs_df['車牌號碼'].astype(str).str.contains(search_q, na=False)]
+        else:
+            display_logs = logs_df
+            
+        # 限制顯示前 100 筆提高效能
+        st.dataframe(display_logs.head(100), use_container_width=True)
 
 elif st.session_state.menu == 'delete':
     st.subheader("🗑️ 刪除紀錄")
